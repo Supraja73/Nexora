@@ -1,0 +1,28 @@
+services:
+  nexora:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: nexora-platform
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nexora-data:/app/backend
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DEBUG=False
+      - DATABASE_URL=sqlite:///./nexora.db
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - MONITORING_INTERVAL_SECONDS=2
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+
+volumes:
+  nexora-data:
+    driver: local

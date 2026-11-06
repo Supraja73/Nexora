@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
+  <!-- Outer Hexagon / Container -->
+  <rect x="4" y="4" width="40" height="40" rx="10" fill="#0C684D" />
+  <rect x="6" y="6" width="36" height="36" rx="8" stroke="#A5F044" stroke-width="2" stroke-opacity="0.4" />
+  <!-- Container Box / Namespace Cube Layers -->
+  <path d="M24 12L34 18V30L24 36L14 30V18L24 12Z" stroke="#A5F044" stroke-width="2" stroke-linejoin="round" />
+  <path d="M24 12V24M24 24L34 18M24 24L14 18" stroke="#A5F044" stroke-width="1.8" stroke-linejoin="round" />
+  <circle cx="24" cy="24" r="2.5" fill="#FFFFFF" />
+  <!-- NEXORA Typography -->
+  <text x="56" y="30" font-family="system-ui, -apple-system, 'Inter', 'Segoe UI', sans-serif" font-weight="800" font-size="22" letter-spacing="0.5" fill="currentColor">NEXORA</text>
+  <circle cx="160" cy="27" r="3.5" fill="#A5F044" />
+</svg>

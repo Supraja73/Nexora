@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXORA — Linux Container Process Isolation & Resource Management</title>
+  <link rel="icon" type="image/svg+xml" href="/static/assets/favicon.svg">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  
+  <!-- Chart.js & Lucide Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <img src="/static/assets/logo.svg" alt="NEXORA" class="brand-logo-img">
+      </div>
+      
+      <nav class="sidebar-menu">
+        <div class="menu-category-title">Core Platform</div>
+        <a class="nav-link active" data-view="view-dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" data-view="view-containers">
+          <i data-lucide="box"></i>
+          <span>Container Management</span>
+        </a>
+        <a class="nav-link" data-view="view-processes">
+          <i data-lucide="cpu"></i>
+          <span>Process Isolation</span>
+        </a>
+        <a class="nav-link" data-view="view-resources">
+          <i data-lucide="sliders"></i>
+          <span>Resource Management</span>
+        </a>
+
+        <div class="menu-category-title" style="margin-top: 14px;">Telemetry & Audit</div>
+        <a class="nav-link" data-view="view-monitoring">
+          <i data-lucide="activity"></i>
+          <span>Live Monitoring</span>
+        </a>
+        <a class="nav-link" data-view="view-analytics">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a class="nav-link" data-view="view-activity">
+          <i data-lucide="history"></i>
+          <span>Activity Log</span>
+        </a>
+        <a class="nav-link" data-view="view-settings">
+          <i data-lucide="settings"></i>
+          <span>System Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="host-status-card">
+          <div class="host-status-title">
+            <span>Linux Host (WSL 2)</span>
+            <span class="status-pill running" style="padding: 2px 6px; font-size: 10px;">cgroups v2</span>
+          </div>
+          <div class="host-status-sub" id="sidebar-host-sub">
+            Kernel: Linux 6.6.36.3<br>
+            Isolated PID Namespaces
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Application Area -->
+    <main class="app-main">
+      <!-- Top Header Navigation -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="top-nav-tabs">
+            <button class="top-tab-btn active" data-view="view-dashboard">Overview</button>
+            <button class="top-tab-btn" data-view="view-containers">Containers</button>
+            <button class="top-tab-btn" data-view="view-processes">Processes</button>
+            <button class="top-tab-btn" data-view="view-resources">Resources</button>
+            <button class="top-tab-btn" data-view="view-analytics">Analytics</button>
+            <button class="top-tab-btn" data-view="view-activity">Activity</button>
+            <button class="top-tab-btn" data-view="view-settings">Settings</button>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Live Docker Status Badge -->
+          <div class="docker-status-badge" id="header-docker-badge" title="Docker Engine Connection Status">
+            <span class="pulse-dot" id="header-docker-dot"></span>
+            <span id="header-docker-text">Connecting...</span>
+          </div>
+
+          <!-- Live Clock -->
+          <div class="docker-status-badge" style="font-weight: 500;" id="header-clock">
+            --:--:--
+          </div>
+
+          <!-- Theme Toggle -->
+          <button class="icon-button" id="theme-toggle-btn" title="Toggle Light/Dark Theme">
+            <i data-lucide="moon" id="theme-icon"></i>
+          </button>
+
+          <!-- Refresh Button -->
+          <button class="icon-button" id="refresh-all-btn" title="Refresh Live Data">
+            <i data-lucide="refresh-cw"></i>
+          </button>
+
+          <!-- Quick Action: Create Container -->
+          <button class="btn-primary" id="btn-open-create-modal">
+            <i data-lucide="plus"></i>
+            <span>New Container</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- View Containers -->
+      <div class="content-body">
+        
+        <!-- ================= VIEW 1: DASHBOARD ================= -->
+        <section id="view-dashboard" class="view-section active">
+          <!-- Welcome Banner -->
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Good morning, Administrator</h1>
+              <p class="welcome-subtitle">Monitor containers, manage resources and track system performance.</p>
+            </div>
+            <div class="welcome-badge">
+              <i data-lucide="shield-check" style="color: var(--secondary-emerald); width: 18px; height: 18px;"></i>
+              <span>Linux Process Isolation: Active</span>
+            </div>
+          </div>
+
+          <!-- 8 Dashboard Metric Cards -->
+          <div class="metrics-grid">
+            <!-- 1. Total Containers -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">Total Containers</span>
+                <div class="metric-icon-wrap"><i data-lucide="boxes"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-total-containers">0</span>
+                <span class="metric-unit">instances</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge trend-lime">Configured</span>
+                <span>Active cgroup partitions</span>
+              </div>
+            </div>
+
+            <!-- 2. Running Containers (Finexy Emerald Card) -->
+            <div class="metric-card card-emerald">
+              <div class="metric-card-top">
+                <span class="metric-label">Running Containers</span>
+                <div class="metric-icon-wrap"><i data-lucide="play-circle"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-running-containers">0</span>
+                <span class="metric-unit" style="color: rgba(255,255,255,0.85);">online</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge">Active</span>
+                <span>Namespaces isolated</span>
+              </div>
+            </div>
+
+            <!-- 3. Stopped Containers -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">Stopped Containers</span>
+                <div class="metric-icon-wrap"><i data-lucide="stop-circle"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-stopped-containers">0</span>
+                <span class="metric-unit">dormant</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge" style="background: var(--status-stopped-bg); color: var(--status-stopped);">Exited</span>
+                <span>Zero CPU consumption</span>
+              </div>
+            </div>
+
+            <!-- 4. CPU Utilization -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">CPU Utilization</span>
+                <div class="metric-icon-wrap"><i data-lucide="cpu"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-cpu-util">0.0</span>
+                <span class="metric-unit">%</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge trend-lime" id="dash-cpu-cores-sub">Quota</span>
+                <span>CFS scheduler enforced</span>
+              </div>
+            </div>
+
+            <!-- 5. Memory Utilization -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">Memory Utilization</span>
+                <div class="metric-icon-wrap"><i data-lucide="database"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-mem-util">0.0</span>
+                <span class="metric-unit">MB</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge trend-lime" id="dash-mem-percent-badge">0%</span>
+                <span id="dash-mem-limit-sub">of cgroup limit</span>
+              </div>
+            </div>
+
+            <!-- 6. Active Processes -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">Active Processes</span>
+                <div class="metric-icon-wrap"><i data-lucide="git-branch"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-active-procs">0</span>
+                <span class="metric-unit">PIDs</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge trend-lime">CLONE_NEWPID</span>
+                <span>Virtual PID hierarchies</span>
+              </div>
+            </div>
+
+            <!-- 7. Container Health -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">Container Health</span>
+                <div class="metric-icon-wrap"><i data-lucide="heart-pulse"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" id="dash-health">100%</span>
+                <span class="metric-unit">stable</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge trend-lime">Protected</span>
+                <span>OOM safety guard active</span>
+              </div>
+            </div>
+
+            <!-- 8. Docker Engine Status -->
+            <div class="metric-card">
+              <div class="metric-card-top">
+                <span class="metric-label">Docker Engine Status</span>
+                <div class="metric-icon-wrap"><i data-lucide="server"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value" style="font-size: 20px;" id="dash-docker-status">Online</span>
+              </div>
+              <div class="metric-sub">
+                <span class="trend-badge trend-lime" id="dash-docker-version">v26.1</span>
+                <span id="dash-docker-mode-sub">Linux Container Mode</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row: Live CPU & Memory Usage Splines -->
+          <div class="charts-grid-two">
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3>Live CPU Utilization</h3>
+                  <p>Real-time cgroup CFS quota & CPU usage (%)</p>
+                </div>
+                <span class="status-pill running"><i data-lucide="radio" style="width:12px;height:12px;"></i> Live 2s</span>
+              </div>
+              <div class="chart-canvas-container">
+                <canvas id="chart-live-cpu"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3>Live Memory Consumption</h3>
+                  <p>Kernel working set vs cgroup memory.max (MB)</p>
+                </div>
+                <span class="status-pill running"><i data-lucide="radio" style="width:12px;height:12px;"></i> Live 2s</span>
+              </div>
+              <div class="chart-canvas-container">
+                <canvas id="chart-live-memory"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lower Section: Running Containers Table + Live Activity Stream -->
+          <div class="dashboard-split-grid">
+            <!-- Running Containers Table -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <h3 class="section-card-title">Running Containers</h3>
+                <button class="btn-secondary" style="padding: 6px 14px; font-size: 12px;" data-view="view-containers">View All</button>
+              </div>
+              <div class="section-card-body">
+                <table class="nexora-table">
+                  <thead>
+                    <tr>
+                      <th>Container</th>
+                      <th>Status</th>
+                      <th>CPU Quota</th>
+                      <th>RAM Usage</th>
+                      <th>Uptime</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dash-containers-tbody">
+                    <tr><td colspan="6" style="text-align: center; padding: 24px;">Loading containers...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Recent Activities Stream -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <h3 class="section-card-title">Recent Activity</h3>
+                <span class="status-pill created" style="font-size: 10px;">Audit Ledger</span>
+              </div>
+              <div class="section-card-body">
+                <div class="activity-stream" id="dash-activity-stream">
+                  <div style="padding: 16px; text-align: center; color: var(--text-secondary);">Loading activity logs...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Information Specs Banner -->
+          <div class="system-specs-banner" id="dash-system-banner">
+            <div class="spec-item">
+              <span class="spec-label">Host Architecture</span>
+              <span class="spec-val" id="spec-arch">x86_64 Linux</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Kernel Version</span>
+              <span class="spec-val" id="spec-kernel">Linux 6.6.36.3-WSL2</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">cgroup Driver</span>
+              <span class="spec-val" id="spec-cgroup">cgroupfs (v2)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Docker API</span>
+              <span class="spec-val" id="spec-api">v1.45</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Host CPU Cores</span>
+              <span class="spec-val" id="spec-cores">--</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Host RAM</span>
+              <span class="spec-val" id="spec-ram">-- GB</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 2: CONTAINER MANAGEMENT ================= -->
+        <section id="view-containers" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Container Management</h1>
+              <p class="welcome-subtitle">Create, monitor, isolate, and configure Linux containers with strict cgroup constraints.</p>
+            </div>
+            <button class="btn-primary" id="btn-open-create-modal-2">
+              <i data-lucide="plus"></i>
+              <span>Create Container</span>
+            </button>
+          </div>
+
+          <!-- Controls Toolbar -->
+          <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <input type="text" class="form-control" id="containers-search-input" placeholder="Search by name, ID or image..." style="width: 280px; padding: 9px 14px;">
+              <select class="form-control" id="containers-status-filter" style="width: 160px; padding: 9px 14px;">
+                <option value="all">All Statuses</option>
+                <option value="running">Running</option>
+                <option value="paused">Paused</option>
+                <option value="exited">Stopped</option>
+              </select>
+            </div>
+            <button class="btn-secondary" id="btn-refresh-containers">
+              <i data-lucide="rotate-cw"></i> Refresh
+            </button>
+          </div>
+
+          <!-- Containers Full Table -->
+          <div class="section-card">
+            <div class="section-card-body">
+              <table class="nexora-table">
+                <thead>
+                  <tr>
+                    <th>Container Name</th>
+                    <th>Container ID</th>
+                    <th>Image</th>
+                    <th>Status</th>
+                    <th>CPU Limit</th>
+                    <th>Memory Limit</th>
+                    <th>Port Mapping</th>
+                    <th>Restart Policy</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="containers-tbody">
+                  <tr><td colspan="9" style="text-align: center; padding: 24px;">Loading containers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 3: PROCESS ISOLATION ================= -->
+        <section id="view-processes" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Process Isolation & Linux Namespaces</h1>
+              <p class="welcome-subtitle">Explore PID namespace translation, container PID vs host PID mapping, and shared kernel boundaries.</p>
+            </div>
+            <div class="welcome-badge">
+              <i data-lucide="layers" style="color: var(--secondary-emerald); width: 18px; height: 18px;"></i>
+              <span>CLONE_NEWPID Hierarchy</span>
+            </div>
+          </div>
+
+          <!-- Container Selector Bar -->
+          <div class="section-card" style="padding: 18px 24px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <label class="form-label" style="margin-bottom: 0;">Target Container:</label>
+                <select class="form-control" id="process-container-select" style="width: 260px;"></select>
+              </div>
+              <div id="process-container-ns-badge" class="status-pill created" style="font-family: monospace; font-size: 12px;">
+                Namespace: pid:[4026532410]
+              </div>
+            </div>
+          </div>
+
+          <!-- Process Inspection Table -->
+          <div class="section-card" style="margin-bottom: 28px;">
+            <div class="section-card-header">
+              <h3 class="section-card-title">Virtual Process Hierarchy (Container Namespace vs Host Kernel)</h3>
+              <span class="status-pill running" id="process-count-badge">3 Processes</span>
+            </div>
+            <div class="section-card-body">
+              <table class="nexora-table">
+                <thead>
+                  <tr>
+                    <th>Container PID</th>
+                    <th>Host PID</th>
+                    <th>User / UID</th>
+                    <th>CPU %</th>
+                    <th>Memory %</th>
+                    <th>State</th>
+                    <th>Executable Command</th>
+                  </tr>
+                </thead>
+                <tbody id="processes-tbody">
+                  <tr><td colspan="7" style="text-align: center; padding: 24px;">Select a running container to view process isolation...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Multi-Container PID 1 Isolation Comparison Demo -->
+          <div class="compare-container-box">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">Inter-Container PID Namespace Comparison</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+              Observe how multiple containers maintain independent PID 1 root processes simultaneously without identifier collisions on the shared Linux host kernel.
+            </p>
+            <div id="compare-containers-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
+          </div>
+
+          <!-- Educational Namespaces Architecture Section -->
+          <div class="section-card" style="padding: 24px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">Linux Kernel Isolation Architecture: Containers vs Virtual Machines</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">
+              A container is not a virtual machine. While a virtual machine emulates physical hardware and boots a completely separate guest kernel via a hypervisor, containers execute natively on the host Linux kernel. The kernel partitions resources using 7 fundamental Namespaces and restricts hardware utilization using Control Groups (cgroups).
+            </p>
+
+            <div class="namespace-card-grid" id="namespace-cards-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 4: RESOURCE MANAGEMENT ================= -->
+        <section id="view-resources" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Resource Management & cgroups</h1>
+              <p class="welcome-subtitle">Configure hardware boundaries, enforce CFS CPU quotas, set memory maximums, and prevent host starvation.</p>
+            </div>
+            <div class="welcome-badge">
+              <i data-lucide="sliders" style="color: var(--secondary-emerald); width: 18px; height: 18px;"></i>
+              <span>Linux cgroups v2 Active</span>
+            </div>
+          </div>
+
+          <div class="charts-grid-two">
+            <!-- Left: Resource Configuration Controls -->
+            <div class="section-card" style="padding: 24px;">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Select Container to Tune</h3>
+              <div class="form-group">
+                <label class="form-label">Container Instance</label>
+                <select class="form-control" id="resource-container-select"></select>
+              </div>
+
+              <!-- CPU Limit Slider -->
+              <div class="slider-group">
+                <div class="slider-header">
+                  <span class="slider-title"><i data-lucide="cpu" style="width: 16px; height: 16px; vertical-align: middle;"></i> CPU Allocation</span>
+                  <span class="slider-badge" id="slider-cpu-val">1.0 Cores</span>
+                </div>
+                <input type="range" class="custom-range-slider" id="resource-cpu-slider" min="0.1" max="4.0" step="0.1" value="1.0">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                  <span>0.1 Cores</span>
+                  <span id="cgroup-cpu-quota-calc">CFS Quota: 100,000 µs / 100,000 µs</span>
+                  <span>4.0 Cores</span>
+                </div>
+              </div>
+
+              <!-- Memory Limit Slider -->
+              <div class="slider-group">
+                <div class="slider-header">
+                  <span class="slider-title"><i data-lucide="database" style="width: 16px; height: 16px; vertical-align: middle;"></i> Memory Maximum</span>
+                  <span class="slider-badge" id="slider-mem-val">512 MB</span>
+                </div>
+                <input type="range" class="custom-range-slider" id="resource-mem-slider" min="64" max="4096" step="64" value="512">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                  <span>64 MB</span>
+                  <span id="cgroup-mem-bytes-calc">memory.max: 536,870,912 bytes</span>
+                  <span>4096 MB (4GB)</span>
+                </div>
+              </div>
+
+              <div style="margin-top: 24px;">
+                <button class="btn-primary" id="btn-apply-cgroup-resources" style="width: 100%; justify-content: center;">
+                  <i data-lucide="check"></i> Apply cgroup Limits to Kernel
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Real-time Utilization & cgroup Inspection -->
+            <div class="section-card" style="padding: 24px;">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Real-Time cgroup Enforcement Status</h3>
+              
+              <div id="resource-warning-banner" style="display: none; padding: 14px; background: rgba(245, 158, 11, 0.12); border-left: 4px solid var(--status-paused); border-radius: var(--radius-md); margin-bottom: 18px; font-size: 13px; color: var(--status-paused); font-weight: 600;">
+                <i data-lucide="alert-triangle" style="width: 16px; height: 16px; vertical-align: middle;"></i> High Utilization Warning Detected!
+              </div>
+
+              <div class="code-box" id="cgroup-inspect-box" style="margin-bottom: 20px;">
+                # Linux cgroups v2 Kernel Controllers
+                /sys/fs/cgroup/cpu.max: 100000 100000
+                /sys/fs/cgroup/memory.max: 536870912
+                /sys/fs/cgroup/memory.current: 134217728
+                /sys/fs/cgroup/pids.max: 200
+                /sys/fs/cgroup/pids.current: 3
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="metric-card" style="padding: 16px;">
+                  <span class="metric-label">CPU Consumption</span>
+                  <span class="metric-value" id="res-detail-cpu" style="font-size: 22px;">--%</span>
+                  <span class="metric-sub">vs configured quota</span>
+                </div>
+                <div class="metric-card" style="padding: 16px;">
+                  <span class="metric-label">RAM Consumption</span>
+                  <span class="metric-value" id="res-detail-mem" style="font-size: 22px;">-- MB</span>
+                  <span class="metric-sub" id="res-detail-mem-sub">--% of limit</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 5: LIVE MONITORING ================= -->
+        <section id="view-monitoring" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Live Telemetry & Performance Monitoring</h1>
+              <p class="welcome-subtitle">Streaming Docker statistics, virtual ethernet I/O, block storage operations, and process counts.</p>
+            </div>
+            <div class="welcome-badge">
+              <span class="pulse-dot"></span>
+              <span>Streaming: 2.0s</span>
+            </div>
+          </div>
+
+          <!-- Monitoring Multi-Container Cards -->
+          <div class="charts-grid-two" style="margin-bottom: 24px;">
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3>Network I/O Throughput</h3>
+                  <p>Virtual ethernet veth interfaces (RX/TX bytes)</p>
+                </div>
+              </div>
+              <div class="chart-canvas-container">
+                <canvas id="chart-net-io"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3>Active Container Comparison</h3>
+                  <p>Resource footprint comparison across active partitions</p>
+                </div>
+              </div>
+              <div class="chart-canvas-container">
+                <canvas id="chart-container-compare"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Telemetry Stream Table -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3 class="section-card-title">Live Container Statistics Feed</h3>
+            </div>
+            <div class="section-card-body">
+              <table class="nexora-table">
+                <thead>
+                  <tr>
+                    <th>Container</th>
+                    <th>CPU Usage (%)</th>
+                    <th>Memory (Used / Limit)</th>
+                    <th>Memory %</th>
+                    <th>Network RX / TX</th>
+                    <th>Block I/O</th>
+                    <th>PIDs</th>
+                  </tr>
+                </thead>
+                <tbody id="monitoring-stats-tbody">
+                  <tr><td colspan="7" style="text-align: center; padding: 24px;">Collecting live container telemetry...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 6: ANALYTICS ================= -->
+        <section id="view-analytics" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Historical Analytics & Trends</h1>
+              <p class="welcome-subtitle">Analyze longitudinal CPU, memory, and container lifecycle trends stored in the SQLite ledger.</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-secondary analytics-tf-btn active" data-minutes="15">15 Min</button>
+              <button class="btn-secondary analytics-tf-btn" data-minutes="60">1 Hour</button>
+              <button class="btn-secondary analytics-tf-btn" data-minutes="360">6 Hours</button>
+              <button class="btn-secondary analytics-tf-btn" data-minutes="1440">24 Hours</button>
+            </div>
+          </div>
+
+          <div class="metrics-grid" style="margin-bottom: 24px;">
+            <div class="metric-card">
+              <span class="metric-label">Average CPU</span>
+              <span class="metric-value" id="analytics-avg-cpu">0.0%</span>
+              <span class="metric-sub">Over selected window</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Peak CPU Spike</span>
+              <span class="metric-value" id="analytics-peak-cpu">0.0%</span>
+              <span class="metric-sub">CFS scheduler peak</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Average Memory</span>
+              <span class="metric-value" id="analytics-avg-mem">0.0 MB</span>
+              <span class="metric-sub">Working set average</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Total Data Points</span>
+              <span class="metric-value" id="analytics-points">0</span>
+              <span class="metric-sub">SQLite snapshot rows</span>
+            </div>
+          </div>
+
+          <div class="chart-card" style="margin-bottom: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3>Historical Resource Consumption Timeline</h3>
+                <p>Longitudinal average CPU utilization (%) and aggregate Memory consumption (MB)</p>
+              </div>
+            </div>
+            <div class="chart-canvas-container" style="height: 280px;">
+              <canvas id="chart-analytics-timeline"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 7: ACTIVITY LOG ================= -->
+        <section id="view-activity" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Audit Ledger & Activity Logs</h1>
+              <p class="welcome-subtitle">Complete chronological event record of all container lifecycles, resource modifications and errors.</p>
+            </div>
+            <button class="btn-secondary" id="btn-refresh-activities">
+              <i data-lucide="rotate-cw"></i> Refresh Audit Log
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 14px; margin-bottom: 20px;">
+            <input type="text" class="form-control" id="activity-search-input" placeholder="Search event description, container name..." style="width: 320px;">
+            <select class="form-control" id="activity-type-filter" style="width: 180px;">
+              <option value="">All Event Types</option>
+              <option value="create">Creation</option>
+              <option value="start">Start</option>
+              <option value="stop">Stop</option>
+              <option value="restart">Restart</option>
+              <option value="pause">Pause</option>
+              <option value="unpause">Unpause</option>
+              <option value="delete">Removal</option>
+              <option value="resource_update">Resource Update</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-body">
+              <table class="nexora-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Event Type</th>
+                    <th>Container</th>
+                    <th>Status</th>
+                    <th>Event Description</th>
+                  </tr>
+                </thead>
+                <tbody id="activity-tbody">
+                  <tr><td colspan="5" style="text-align: center; padding: 24px;">Loading activity history...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= VIEW 8: SYSTEM SETTINGS ================= -->
+        <section id="view-settings" class="view-section">
+          <div class="dashboard-welcome">
+            <div>
+              <h1 class="welcome-title">Platform & System Settings</h1>
+              <p class="welcome-subtitle">Configure theme preferences, telemetry polling frequency, Docker socket bindings, and inspect diagnostics.</p>
+            </div>
+          </div>
+
+          <div class="charts-grid-two">
+            <!-- Appearance & Polling Settings -->
+            <div class="section-card" style="padding: 24px;">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 18px;">Preferences</h3>
+
+              <div class="form-group">
+                <label class="form-label">Theme Mode</label>
+                <select class="form-control" id="settings-theme-select">
+                  <option value="light">Light Theme (Finexy Crisp)</option>
+                  <option value="dark">Dark Theme (Emerald Dark)</option>
+                </select>
+                <p class="form-hint">Stored locally in your browser session.</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Telemetry Refresh Interval</label>
+                <select class="form-control" id="settings-interval-select">
+                  <option value="2000">2 Seconds (High Precision)</option>
+                  <option value="3000">3 Seconds (Standard)</option>
+                  <option value="5000">5 Seconds (Low Overhead)</option>
+                </select>
+                <p class="form-hint">Frequency of live CPU, RAM, and network statistics collection.</p>
+              </div>
+
+              <button class="btn-primary" id="btn-save-settings">Save Preferences</button>
+            </div>
+
+            <!-- Docker Daemon Connection Diagnostics -->
+            <div class="section-card" style="padding: 24px;">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 18px;">Docker Engine Diagnostics</h3>
+
+              <div class="code-box" id="settings-docker-diagnostics">
+                Loading diagnostics...
+              </div>
+
+              <div style="margin-top: 18px;">
+                <p class="form-hint" style="margin-bottom: 12px;">
+                  On Windows, NEXORA connects to Docker Desktop via the local named pipe <code>npipe:////./pipe/docker_engine</code> or WSL 2 backend socket.
+                </p>
+                <button class="btn-secondary" id="btn-reconnect-docker">
+                  <i data-lucide="refresh-cw"></i> Reconnect Docker Engine
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Academic Attribution Card -->
+          <div class="section-card" style="padding: 24px; margin-top: 24px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">NEXORA Architecture & College Project Identity</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+              <strong>Project Title:</strong> Linux Container-Based Process Isolation and Resource Management<br>
+              <strong>Tagline:</strong> Isolate. Monitor. Optimize.<br>
+              <strong>Core Technologies:</strong> Linux Kernel Namespaces (PID, NET, MNT, IPC, UTS, USER), Control Groups v2 (cgroups), Docker Engine SDK, Python 3.12, FastAPI, SQLite, Chart.js.
+            </p>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- Modal 1: Create Container -->
+  <div class="modal-backdrop" id="modal-create-container">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New Isolated Container</h3>
+        <button class="modal-close-btn" data-close-modal="modal-create-container"><i data-lucide="x"></i></button>
+      </div>
+      <form id="form-create-container">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Container Name *</label>
+            <input type="text" class="form-control" id="create-name" required placeholder="e.g. nexora-api-node" pattern="^[a-zA-Z0-9][a-zA-Z0-9_.-]{1,63}$">
+            <p class="form-hint">Must be 2-64 alphanumeric characters, dashes or underscores.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Docker Image *</label>
+            <select class="form-control" id="create-image-select">
+              <option value="alpine:latest">alpine:latest (Lightweight Linux, 5MB)</option>
+              <option value="nginx:alpine">nginx:alpine (High performance HTTP server)</option>
+              <option value="redis:alpine">redis:alpine (In-memory cache)</option>
+              <option value="python:3.12-alpine">python:3.12-alpine (Python execution environment)</option>
+              <option value="busybox:latest">busybox:latest (Embedded Linux utilities)</option>
+              <option value="ubuntu:latest">ubuntu:latest (Standard Ubuntu LTS)</option>
+              <option value="custom">Custom Image...</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="create-custom-image-group" style="display: none;">
+            <label class="form-label">Custom Image Reference</label>
+            <input type="text" class="form-control" id="create-custom-image" placeholder="e.g. node:20-alpine">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-title">CPU Limit</span>
+              <span class="slider-badge" id="modal-cpu-badge">1.0 Cores</span>
+            </div>
+            <input type="range" class="custom-range-slider" id="create-cpu-slider" min="0.1" max="4.0" step="0.1" value="1.0">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-title">Memory Limit</span>
+              <span class="slider-badge" id="modal-mem-badge">512 MB</span>
+            </div>
+            <input type="range" class="custom-range-slider" id="create-mem-slider" min="64" max="4096" step="64" value="512">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Port Mapping (Host:Container)</label>
+            <input type="text" class="form-control" id="create-ports" placeholder="e.g. 8080:80">
+            <p class="form-hint">Exposes container port through host NAT network.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Restart Policy</label>
+            <select class="form-control" id="create-restart-policy">
+              <option value="no">no (Do not restart automatically)</option>
+              <option value="unless-stopped">unless-stopped (Always restart unless stopped manually)</option>
+              <option value="always">always (Always restart on failure or reboot)</option>
+              <option value="on-failure">on-failure (Restart if non-zero exit code)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="modal-create-container">Cancel</button>
+          <button type="submit" class="btn-primary" id="btn-submit-create-container">
+            <i data-lucide="play"></i> Create & Launch Container
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Inspect Container -->
+  <div class="modal-backdrop" id="modal-inspect-container">
+    <div class="modal-card large">
+      <div class="modal-header">
+        <h3 id="inspect-modal-title">Container Details & Configuration</h3>
+        <button class="modal-close-btn" data-close-modal="modal-inspect-container"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="code-box" id="inspect-json-box" style="max-height: 440px;">
+          Loading container configuration...
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="modal-inspect-container">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Confirm Delete -->
+  <div class="modal-backdrop" id="modal-confirm-delete">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>Confirm Container Removal</h3>
+        <button class="modal-close-btn" data-close-modal="modal-confirm-delete"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: var(--text-primary); margin-bottom: 12px;">
+          Are you sure you want to permanently remove container <strong id="delete-container-name">--</strong>?
+        </p>
+        <p style="font-size: 12px; color: var(--status-stopped);">
+          This will stop running processes, destroy virtual network interfaces, and unbind cgroup controllers.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close-modal="modal-confirm-delete">Cancel</button>
+        <button type="button" class="btn-secondary danger" id="btn-confirm-delete-action" style="background: var(--status-stopped); color: #FFF; border: none;">
+          Remove Container
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Scripts -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/dashboard.js"></script>
+  <script src="/static/js/containers.js"></script>
+  <script src="/static/js/processes.js"></script>
+  <script src="/static/js/resources.js"></script>
+  <script src="/static/js/monitoring.js"></script>
+  <script src="/static/js/analytics.js"></script>
+  <script src="/static/js/settings.js"></script>
+</body>
+</html>
